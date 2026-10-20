@@ -7,7 +7,7 @@ existing egui editor.
 
 ## Build on Windows
 
-Install Node.js 22, Rust, GHC/Cabal, and the MSYS2 MINGW64 toolchain used by the
+Install Node.js 24, Rust, GHC/Cabal, and the MSYS2 MINGW64 toolchain used by the
 existing Windows VST3 build. Then build the editor page and plugin:
 
 ```powershell
