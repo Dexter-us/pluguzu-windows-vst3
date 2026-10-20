@@ -58,12 +58,13 @@ if (-not $importLibraries) {
 Copy-Item $importLibraries.FullName $binDir
 
 Write-Host "Bundling the Windows x64 VST3..."
-$pkgConfig = Get-Command "pkg-config" -ErrorAction Stop
-$mingwPrefix = Split-Path -Parent (Split-Path -Parent $pkgConfig.Source)
-$sndfileLibDir = Join-Path $mingwPrefix "lib"
+if (-not $env:MSYS2_LOCATION) {
+    throw "MSYS2_LOCATION was not provided by the MSYS2 setup step."
+}
+$sndfileLibDir = Join-Path (Join-Path $env:MSYS2_LOCATION "mingw64") "lib"
 $sndfileLibs = Get-ChildItem -Path $sndfileLibDir -Filter "*sndfile*.a" -File -ErrorAction SilentlyContinue
 if (-not $sndfileLibs) {
-    throw "Could not find libsndfile import libraries beside MSYS2's pkg-config: $sndfileLibDir"
+    throw "Could not find libsndfile import libraries in the MSYS2 MINGW64 library directory: $sndfileLibDir"
 }
 $env:RUSTFLAGS = (@($env:RUSTFLAGS, "-L native=$sndfileLibDir") -join " ").Trim()
 cargo xtask bundle pluguzu --release --target $target
