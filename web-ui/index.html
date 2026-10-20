@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zen Master</title>
+  </head>
+  <body>
+    <main id="app">
+      <header class="brand-frame">
+        <span>Dexter U.S. Zen Master</span>
+        <span class="version">CODE EDITOR · EXPERIMENTAL</span>
+      </header>
+
+      <nav class="toolbar" aria-label="Editor controls">
+        <details class="menu">
+          <summary>File <span>▾</span></summary>
+          <div class="menu-panel">
+            <button id="new-file">New</button>
+            <button id="open-file">Open text…</button>
+            <button id="save-file">Save</button>
+            <button id="save-as">Save as…</button>
+          </div>
+        </details>
+
+        <label class="language-control">
+          Language
+          <select id="language">
+            <option value="tidal">Tidal</option>
+            <option value="mondo">Mondo</option>
+          </select>
+        </label>
+
+        <label class="sync-control">
+          <input id="sync" type="checkbox" checked />
+          Sync to host clock
+        </label>
+
+        <label class="bpm-control">
+          BPM
+          <input id="bpm" type="number" min="20" max="300" value="120" />
+        </label>
+
+        <span class="toolbar-spacer"></span>
+        <button id="run" class="primary">Run <kbd>Ctrl+Enter</kbd></button>
+        <button id="stop">Stop</button>
+      </nav>
+
+      <section class="editor-shell" aria-label="Code editor">
+        <div id="editor"></div>
+      </section>
+
+      <footer class="status-bar">
+        <span id="file-status">Unsaved changes</span>
+        <span id="runtime-status">Waiting for audio…</span>
+      </footer>
+    </main>
+
+    <dialog id="file-dialog">
+      <form method="dialog" class="file-dialog">
+        <div class="dialog-heading">
+          <h2 id="dialog-title">Open code file</h2>
+          <button class="icon-button" value="cancel" aria-label="Close">×</button>
+        </div>
+        <div class="directory-row">
+          <button type="button" id="up-directory">Up</button>
+          <input id="directory" type="text" aria-label="Folder path" />
+          <button type="button" id="go-directory">Go</button>
+        </div>
+        <div id="directory-error" class="dialog-error"></div>
+        <div id="file-list" class="file-list"></div>
+        <label id="filename-row" class="filename-row" hidden>
+          File name
+          <input id="filename" type="text" value="untitled.hs" />
+        </label>
+        <div class="dialog-actions">
+          <button type="button" id="cancel-dialog">Cancel</button>
+          <button type="button" id="confirm-file" class="primary">Open</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

@@ -3,12 +3,13 @@ name: Windows VST3
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, zen-master]
     paths:
       - ".github/workflows/windows-vst3.yml"
       - ".cargo/**"
       - "Cargo.toml"
       - "Cargo.lock"
+      - "web-ui/**"
       - "cabal.project"
       - "pluguzu.cabal"
       - "haskell-ffi/**"
@@ -21,6 +22,7 @@ on:
       - ".cargo/**"
       - "Cargo.toml"
       - "Cargo.lock"
+      - "web-ui/**"
       - "cabal.project"
       - "pluguzu.cabal"
       - "haskell-ffi/**"
@@ -37,6 +39,20 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Build CodeMirror editor
+        shell: pwsh
+        working-directory: web-ui
+        run: |
+          npm ci --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { throw "CodeMirror dependency installation failed." }
+          npm run build
+          if ($LASTEXITCODE -ne 0) { throw "CodeMirror UI build failed." }
 
       - name: Install MinGW dependencies
         id: msys2
@@ -72,6 +88,6 @@ jobs:
       - name: Upload VST3 bundle
         uses: actions/upload-artifact@v4
         with:
-          name: pluguzu-windows-x64-vst3
-          path: target/bundled/pluguzu.vst3
+          name: zen-master-windows-x64-vst3
+          path: target/bundled/zen-master.vst3
           if-no-files-found: error

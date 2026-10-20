@@ -21,6 +21,8 @@ mod syntax;
 pub mod transport;
 pub mod transport_debug;
 mod ui;
+#[cfg(windows)]
+mod zen_master;
 use crossbeam::queue::ArrayQueue;
 pub(crate) use debug::{debug, info, pwarn};
 
@@ -682,7 +684,7 @@ impl Plugin for Pluguzu {
 
     const SAMPLE_ACCURATE_AUTOMATION: bool = false;
 
-    const NAME: &'static str = "Pluguzu";
+    const NAME: &'static str = "Zen Master";
     const VENDOR: &'static str = "Dexter U.S.";
     const URL: &'static str = "https://codeberg.org/TristanCacqueray/pluguzu";
     const EMAIL: &'static str = "tristan@midirus.com";
@@ -690,7 +692,7 @@ impl Plugin for Pluguzu {
 }
 
 impl ClapPlugin for Pluguzu {
-    const CLAP_ID: &'static str = "com.midirus.pluguzu";
+    const CLAP_ID: &'static str = "com.dexterus.zenmaster";
     const CLAP_DESCRIPTION: Option<&'static str> = Some("uzu-lang live editor");
     const CLAP_MANUAL_URL: Option<&'static str> = Some(Self::URL);
     const CLAP_SUPPORT_URL: Option<&'static str> = None;
@@ -698,7 +700,7 @@ impl ClapPlugin for Pluguzu {
 }
 
 impl Vst3Plugin for Pluguzu {
-    const VST3_CLASS_ID: [u8; 16] = *b"PluguzuYeahBoyyy";
+    const VST3_CLASS_ID: [u8; 16] = *b"DexterZenMaster!";
     const VST3_SUBCATEGORIES: &'static [Vst3SubCategory] =
         &[Vst3SubCategory::Fx, Vst3SubCategory::Generator];
 }

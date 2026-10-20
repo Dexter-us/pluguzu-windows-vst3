@@ -191,6 +191,10 @@ impl Pluguzu {
         let initial_hosted_in_daw = self.hosted_in_daw.clone();
 
         let dsp_state = self.transport.state.clone();
+        let zen_transport = dsp_state.clone();
+        let fallback_initial_file = initial_file.clone();
+        let fallback_hosted_in_daw = initial_hosted_in_daw.clone();
+        let fallback_executor = async_executor.clone();
 
         let state = UIState {
             view: UIView::Editor,
@@ -224,13 +228,13 @@ impl Pluguzu {
             hosted_in_daw: false,
         };
         let params = self.params.clone();
-        create_egui_editor(
+        let fallback_editor = create_egui_editor(
             self.params.editor_state.clone(),
             state,
             Default::default(),
             move |egui_ctx, _queue, state| {
-                state.hosted_in_daw = initial_hosted_in_daw.load(Ordering::Relaxed);
-                state.editor.picked_path = initial_file.lock().unwrap().take();
+                state.hosted_in_daw = fallback_hosted_in_daw.load(Ordering::Relaxed);
+                state.editor.picked_path = fallback_initial_file.lock().unwrap().take();
                 state.update_font_size(egui_ctx, state.font_size.load(Ordering::Relaxed));
             },
             move |egui_ctx, setter, _queue, state| {
@@ -247,7 +251,7 @@ impl Pluguzu {
                                     if let Some((new_lang, new_code)) = changed {
                                         state.editor.set_code(new_code);
                                         *state.editor.lang.lock().expect("lock") = new_lang;
-                                        async_executor.execute_background(PluguzuTask::Update);
+                                    fallback_executor.execute_background(PluguzuTask::Update);
                                     }
                                     state.view = UIView::Editor;
                                 };
@@ -374,7 +378,7 @@ impl Pluguzu {
                                         }
                                         state.editor.updated = false;
                                     }
-                                    async_executor.execute_background(task);
+                                    fallback_executor.execute_background(task);
                                     output.response.request_focus();
                                 } else if output.response.changed() {
                                     state.editor.updated = true;
@@ -388,7 +392,24 @@ impl Pluguzu {
                     state.adjust_font_size(egui_ctx, font_size_adjust);
                 }
             },
-        )
+        );
+
+        #[cfg(windows)]
+        {
+            Some(Box::new(crate::zen_master::ZenMasterEditor::new(
+                self.params.clone(),
+                async_executor,
+                zen_transport,
+                self.background_state.clone(),
+                initial_file,
+                fallback_editor,
+            )))
+        }
+
+        #[cfg(not(windows))]
+        {
+            Some(fallback_editor)
+        }
     }
 }
 

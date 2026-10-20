@@ -192,4 +192,11 @@ while ($pending.Count -gt 0) {
     }
 }
 
-Write-Host "Windows x64 VST3 bundle ready: $moduleDir"
+$bundleDir = Join-Path $repoRoot "target/bundled/pluguzu.vst3"
+$zenMasterBundleDir = Join-Path $repoRoot "target/bundled/zen-master.vst3"
+if (Test-Path $zenMasterBundleDir) {
+    Remove-Item $zenMasterBundleDir -Recurse -Force
+}
+Rename-Item -Path $bundleDir -NewName "zen-master.vst3"
+
+Write-Host "Windows x64 Zen Master VST3 bundle ready: $zenMasterBundleDir"

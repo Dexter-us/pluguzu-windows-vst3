@@ -1,0 +1,21 @@
+{
+  "name": "zen-master-editor",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@codemirror/language": "6.10.8",
+    "@codemirror/legacy-modes": "6.5.1",
+    "@codemirror/state": "6.5.2",
+    "@codemirror/theme-one-dark": "6.1.2",
+    "@codemirror/view": "6.36.8",
+    "codemirror": "6.0.2"
+  },
+  "devDependencies": {
+    "vite": "6.4.1",
+    "vite-plugin-singlefile": "2.3.0"
+  }
+}
