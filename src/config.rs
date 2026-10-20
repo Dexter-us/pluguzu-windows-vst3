@@ -45,7 +45,7 @@ stack [
   fast "<1 [1.5 2?]>" $ n $
     arp "<up down diverge>" "<a'm9'8 e'7sus4'8>"
     |- "<12 [12 5]>/2"
-  -- dough demo
-, s "bd*4" # pS "bank" "crate" # cutoff "80 100 150 500"
+  -- Built-in Dough synth demo (doesn't require sample files)
+, s "sine*4" # note "0" # gain 0.2
 ]
 "#;

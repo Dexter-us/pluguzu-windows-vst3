@@ -46,8 +46,17 @@ impl Dough {
         for idx in self.pos..max {
             let mut arr = [0., 0.];
             unsafe { dough_sys::gen_sample(&mut self.engine, arr.as_mut_ptr(), 0) };
-            samples[0][idx] = arr[0];
-            samples[1][idx] = arr[1];
+            if samples.len() == 1 {
+                samples[0][idx] = (arr[0] + arr[1]) * 0.5;
+            } else {
+                for (channel, output) in samples.iter_mut().enumerate() {
+                    output[idx] = match channel {
+                        0 => arr[0],
+                        1 => arr[1],
+                        _ => 0.0,
+                    };
+                }
+            }
         }
         self.pos = max;
     }

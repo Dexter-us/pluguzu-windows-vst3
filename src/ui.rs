@@ -342,11 +342,8 @@ impl EditorState {
             if i.consume_key(egui::Modifiers::CTRL, egui::Key::Enter) {
                 self.last_eval = Some(self.monotonic_time);
                 self.update = Some(PluguzuTask::Update)
-            } else if let Some(path) = &self.picked_path
-                && i.consume_key(egui::Modifiers::CTRL, egui::Key::S)
-            {
-                self.unsaved = false;
-                self.update = Some(PluguzuTask::SaveCode(path.into()));
+            } else if i.consume_key(egui::Modifiers::CTRL, egui::Key::S) {
+                self.save_file(false);
             }
         });
         let mut code_data = self.code.lock().expect("lock");
@@ -367,30 +364,27 @@ impl EditorState {
         if ui.button("New").clicked() {
             self.set_code("".to_string());
             self.picked_path = None;
+            self.unsaved = true;
             self.update = Some(PluguzuTask::Update);
         }
 
-        if ui.button("Open").clicked()
+        if ui.button("Open File...").clicked()
             && let Some(path) = file_dialog(false)
         {
             self.unsaved = false;
             self.picked_path = Some(path.display().to_string());
             self.update = Some(PluguzuTask::LoadCode(path))
         }
-        if self.unsaved
-            && let Some(path) = &self.picked_path
-            && ui.button("Save").on_hover_text("ctrl-s").clicked()
+        if ui
+            .button("Save File")
+            .on_hover_text("Ctrl+S")
+            .clicked()
         {
-            self.unsaved = false;
-            self.update = Some(PluguzuTask::SaveCode(path.into()));
+            self.save_file(false);
         }
 
-        if ui.button("Save-As").clicked()
-            && let Some(path) = file_dialog(true)
-        {
-            self.unsaved = false;
-            self.picked_path = Some(path.display().to_string());
-            self.update = Some(PluguzuTask::SaveCode(path))
+        if ui.button("Save File As...").clicked() {
+            self.save_file(true);
         }
         if ui.button("Save as preset").clicked() {
             self.unsaved = false;
@@ -405,6 +399,31 @@ impl EditorState {
             *view = UIView::Preset
         }
     }
+
+    fn save_file(&mut self, save_as: bool) {
+        let path = if save_as {
+            None
+        } else {
+            self.picked_path
+                .as_deref()
+                .map(std::path::PathBuf::from)
+        }
+        .or_else(|| file_dialog(true));
+
+        if let Some(mut path) = path {
+            if path.extension().is_none() {
+                let extension = match *self.lang.lock().expect("lock") {
+                    UzuKind::Tidal => "hs",
+                    UzuKind::Mondo => "mondo",
+                };
+                path.set_extension(extension);
+            }
+            self.unsaved = false;
+            self.picked_path = Some(path.display().to_string());
+            self.update = Some(PluguzuTask::SaveCode(path));
+        }
+    }
+
     fn render_status(
         &mut self,
         ui: &mut egui::Ui,
