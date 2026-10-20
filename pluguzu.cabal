@@ -11,7 +11,7 @@ maintainer:         tristan@midirus.com
 category:           Sound
 build-type:         Simple
 extra-doc-files:    CHANGELOG.md
--- extra-source-files:
+extra-source-files: haskell-ffi/pluguzu.def
 
 common warnings
     ghc-options: -Wall
@@ -21,6 +21,7 @@ foreign-library pluguzu
     type:             native-shared
     if os(Windows)
         options:      standalone
+        mod-def-file: haskell-ffi/pluguzu.def
     other-modules:    Pluguzu
     -- other-modules:
     -- other-extensions:

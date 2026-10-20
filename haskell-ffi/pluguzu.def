@@ -1,0 +1,7 @@
+EXPORTS
+  pluguzu_init
+  pluguzu_exit
+  pluguzuNew
+  pluguzuParse
+  pluguzuError
+  pluguzuRender

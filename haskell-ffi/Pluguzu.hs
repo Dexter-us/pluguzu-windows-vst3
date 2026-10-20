@@ -1,7 +1,7 @@
 {-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE OverloadedRecordDot #-}
 
-module Pluguzu (pluguzuNew, pluguzuParse, pluguzuError) where
+module Pluguzu (pluguzuNew, pluguzuParse, pluguzuError, pluguzuRender) where
 
 import Control.Exception (SomeException, displayException, handle)
 import Data.ByteString qualified as BS
