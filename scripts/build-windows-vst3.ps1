@@ -55,7 +55,9 @@ $importLibraries = Get-ChildItem -Path (Join-Path $repoRoot "dist-newstyle") -Fi
 if (-not $importLibraries) {
     throw "Cabal produced no MinGW import library (*.dll.a) beside the Haskell DLL."
 }
-Copy-Item $importLibraries.FullName $binDir
+$importLibrary = $importLibraries | Select-Object -First 1
+$linkImportLibrary = Join-Path $binDir "libpluguzu.dll.a"
+Copy-Item $importLibrary.FullName $linkImportLibrary -Force
 
 Write-Host "Bundling the Windows x64 VST3..."
 if (-not $env:MSYS2_LOCATION) {
@@ -66,7 +68,9 @@ $sndfileLibs = Get-ChildItem -Path $sndfileLibDir -Filter "*sndfile*.a" -File -E
 if (-not $sndfileLibs) {
     throw "Could not find libsndfile import libraries in the MSYS2 MINGW64 library directory: $sndfileLibDir"
 }
-$env:RUSTFLAGS = (@($env:RUSTFLAGS, "-L native=$sndfileLibDir") -join " ").Trim()
+# RUSTFLAGS overrides target rustflags from .cargo/config.toml, so include
+# both the staged Haskell import library and MSYS2's native library directory.
+$env:RUSTFLAGS = (@($env:RUSTFLAGS, "-L native=$binDir", "-L native=$sndfileLibDir") -join " ").Trim()
 cargo xtask bundle pluguzu --release --target $target
 if ($LASTEXITCODE -ne 0) {
     throw "The Rust VST3 build failed."
