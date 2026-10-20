@@ -39,6 +39,108 @@ struct PresetState {
     user_presets: Presets,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum CodeDialogMode {
+    Open,
+    SaveAs,
+}
+
+struct CodeFileDialog {
+    mode: CodeDialogMode,
+    extension: String,
+    directory: PathBuf,
+    location: String,
+    entries: Vec<PathBuf>,
+    selected: Option<PathBuf>,
+    file_name: String,
+    overwrite: Option<PathBuf>,
+    error: Option<String>,
+}
+
+impl CodeFileDialog {
+    fn new(
+        mode: CodeDialogMode,
+        extension: String,
+        directory: PathBuf,
+        file_name: String,
+    ) -> Self {
+        let mut dialog = Self {
+            mode,
+            extension,
+            location: directory.display().to_string(),
+            directory,
+            entries: Vec::new(),
+            selected: None,
+            file_name,
+            overwrite: None,
+            error: None,
+        };
+        dialog.reload();
+        dialog
+    }
+
+    fn reload(&mut self) {
+        self.entries.clear();
+        self.selected = None;
+        self.error = None;
+        match std::fs::read_dir(&self.directory) {
+            Ok(entries) => {
+                for entry in entries {
+                    match entry {
+                        Ok(entry) => {
+                            let path = entry.path();
+                            let is_code_file = path
+                                .extension()
+                                .and_then(|extension| extension.to_str())
+                                .is_some_and(|extension| {
+                                    extension.eq_ignore_ascii_case("hs")
+                                        || extension.eq_ignore_ascii_case("mondo")
+                                });
+                            if path.is_dir() || is_code_file {
+                                self.entries.push(path);
+                            }
+                        }
+                        Err(error) => {
+                            self.error = Some(format!("Could not list a folder entry: {error}"));
+                        }
+                    }
+                }
+                self.entries.sort_by(|left, right| {
+                    let left_is_file = !left.is_dir();
+                    let right_is_file = !right.is_dir();
+                    left_is_file.cmp(&right_is_file).then_with(|| {
+                        let left_name = left
+                            .file_name()
+                            .map(|name| name.to_string_lossy().to_lowercase())
+                            .unwrap_or_default();
+                        let right_name = right
+                            .file_name()
+                            .map(|name| name.to_string_lossy().to_lowercase())
+                            .unwrap_or_default();
+                        left_name.cmp(&right_name)
+                    })
+                });
+            }
+            Err(error) => {
+                self.error = Some(format!(
+                    "Could not open folder {}: {error}",
+                    self.directory.display()
+                ));
+            }
+        }
+    }
+
+    fn navigate(&mut self, directory: PathBuf) {
+        if directory.is_dir() {
+            self.directory = directory;
+            self.location = self.directory.display().to_string();
+            self.reload();
+        } else {
+            self.error = Some(format!("Folder not found: {}", directory.display()));
+        }
+    }
+}
+
 struct EditorState {
     cycle_count: Arc<AtomicU32>,
     desired_count: Option<u32>,
@@ -57,6 +159,7 @@ struct EditorState {
 
     update: Option<PluguzuTask>,
     picked_path: Option<String>,
+    file_dialog: Option<CodeFileDialog>,
     user_presets_file: Arc<PathBuf>,
 
     last_eval: Option<u64>,
@@ -103,6 +206,7 @@ impl Pluguzu {
                 unsaved: false,
                 update: None,
                 picked_path: None,
+                file_dialog: None,
                 user_presets_file: self.user_presets_file.clone(),
                 last_eval: None,
                 monotonic_time: 0,
@@ -255,6 +359,7 @@ impl Pluguzu {
                             }
                         };
                     });
+                state.editor.show_file_dialog(egui_ctx);
                 if font_size_adjust != 0 {
                     state.adjust_font_size(egui_ctx, font_size_adjust);
                 }
@@ -402,12 +507,8 @@ impl EditorState {
             self.update = Some(PluguzuTask::Update);
         }
 
-        if ui.button("Open File...").clicked()
-            && let Some(path) = file_dialog(false)
-        {
-            self.unsaved = false;
-            self.picked_path = Some(path.display().to_string());
-            self.update = Some(PluguzuTask::LoadCode(path))
+        if ui.button("Open File...").clicked() {
+            self.open_file_dialog(CodeDialogMode::Open);
         }
         if ui
             .button("Save File")
@@ -435,26 +536,243 @@ impl EditorState {
     }
 
     fn save_file(&mut self, save_as: bool) {
-        let path = if save_as {
-            None
-        } else {
+        if save_as || self.picked_path.is_none() {
+            self.open_file_dialog(CodeDialogMode::SaveAs);
+            return;
+        }
+
+        if let Some(path) = self.picked_path.as_deref().map(PathBuf::from) {
+            self.unsaved = false;
+            self.update = Some(PluguzuTask::SaveCode(path));
+        }
+    }
+
+    fn open_file_dialog(&mut self, mode: CodeDialogMode) {
+        let current_dir = self
+            .picked_path
+            .as_deref()
+            .and_then(|path| {
+                std::path::Path::new(path)
+                    .parent()
+                    .map(PathBuf::from)
+            })
+            .filter(|path| path.is_dir())
+            .or_else(|| std::env::current_dir().ok())
+            .unwrap_or_else(|| PathBuf::from("."));
+
+        let lang = *self.lang.lock().expect("lock");
+        let extension = match lang {
+            UzuKind::Tidal => "hs",
+            UzuKind::Mondo => "mondo",
+        };
+        let file_name = if mode == CodeDialogMode::SaveAs {
             self.picked_path
                 .as_deref()
-                .map(std::path::PathBuf::from)
-        }
-        .or_else(|| file_dialog(true));
+                .and_then(|path| {
+                    std::path::Path::new(path)
+                        .file_name()
+                        .map(|name| name.to_string_lossy().into_owned())
+                })
+                .unwrap_or_else(|| format!("untitled.{extension}"))
+        } else {
+            String::new()
+        };
+        self.file_dialog = Some(CodeFileDialog::new(
+            mode,
+            extension.to_string(),
+            current_dir,
+            file_name,
+        ));
+    }
 
-        if let Some(mut path) = path {
-            if path.extension().is_none() {
-                let extension = match *self.lang.lock().expect("lock") {
-                    UzuKind::Tidal => "hs",
-                    UzuKind::Mondo => "mondo",
-                };
-                path.set_extension(extension);
+    fn show_file_dialog(&mut self, ctx: &egui::Context) {
+        let Some(mut dialog) = self.file_dialog.take() else {
+            return;
+        };
+        let title = match dialog.mode {
+            CodeDialogMode::Open => "Open code file",
+            CodeDialogMode::SaveAs => "Save code file as",
+        };
+        let mut open = true;
+        let mut cancel = false;
+        let mut chosen_path = None;
+
+        egui::Window::new(title)
+            .id(egui::Id::new("pluguzu-code-file-dialog"))
+            .collapsible(false)
+            .resizable(true)
+            .default_size(Vec2::new(560.0, 420.0))
+            .open(&mut open)
+            .show(ctx, |ui| {
+                ui.label("Tidal (.hs) and Mondo (.mondo) code files");
+                ui.horizontal(|ui| {
+                    if ui.button("Up").clicked() {
+                        let parent = dialog.directory.parent().map(PathBuf::from);
+                        if let Some(parent) = parent {
+                            dialog.navigate(parent);
+                        }
+                    }
+                    ui.add(
+                        egui::TextEdit::singleline(&mut dialog.location)
+                            .desired_width(380.0),
+                    );
+                    if ui.button("Go").clicked() {
+                        dialog.navigate(PathBuf::from(dialog.location.clone()));
+                    }
+                });
+                ui.separator();
+
+                let entries = dialog.entries.clone();
+                let mut navigate_to = None;
+                egui::ScrollArea::vertical()
+                    .max_height(250.0)
+                    .show(ui, |ui| {
+                        for path in entries {
+                            let is_directory = path.is_dir();
+                            let name = path
+                                .file_name()
+                                .map(|name| name.to_string_lossy().into_owned())
+                                .unwrap_or_else(|| path.display().to_string());
+                            let label = if is_directory {
+                                format!("[Folder] {name}")
+                            } else {
+                                name.clone()
+                            };
+                            let response = ui.selectable_label(
+                                dialog.selected.as_ref() == Some(&path),
+                                label,
+                            );
+                            if response.clicked() {
+                                dialog.selected = Some(path.clone());
+                                if dialog.mode == CodeDialogMode::SaveAs && !is_directory {
+                                    dialog.file_name = name.clone();
+                                }
+                            }
+                            if response.double_clicked() {
+                                if is_directory {
+                                    navigate_to = Some(path);
+                                } else if dialog.mode == CodeDialogMode::Open {
+                                    chosen_path = Some(path);
+                                } else {
+                                    dialog.file_name = name;
+                                }
+                            }
+                        }
+                    });
+                if let Some(directory) = navigate_to {
+                    dialog.navigate(directory);
+                }
+
+                if let Some(error) = dialog.error.as_deref() {
+                    ui.colored_label(Color32::LIGHT_RED, error);
+                }
+
+                if dialog.mode == CodeDialogMode::SaveAs {
+                    ui.horizontal(|ui| {
+                        ui.label("File name:");
+                        ui.text_edit_singleline(&mut dialog.file_name);
+                    });
+                }
+
+                ui.separator();
+                ui.horizontal(|ui| {
+                    if ui.button("Cancel").clicked() {
+                        cancel = true;
+                    }
+                    match dialog.mode {
+                        CodeDialogMode::Open => {
+                            let can_open = dialog
+                                .selected
+                                .as_ref()
+                                .is_some_and(|path| path.is_file());
+                            if ui
+                                .add_enabled(can_open, egui::Button::new("Open"))
+                                .clicked()
+                            {
+                                chosen_path = dialog.selected.clone();
+                            }
+                        }
+                        CodeDialogMode::SaveAs => {
+                            if let Some(path) = dialog.overwrite.clone() {
+                                ui.label("That file already exists.");
+                                if ui.button("Replace").clicked() {
+                                    chosen_path = Some(path);
+                                    dialog.overwrite = None;
+                                }
+                                if ui.button("Back").clicked() {
+                                    dialog.overwrite = None;
+                                }
+                            } else {
+                                let can_save = !dialog.file_name.trim().is_empty();
+                                if ui
+                                    .add_enabled(can_save, egui::Button::new("Save"))
+                                    .clicked()
+                                {
+                                    let mut path = PathBuf::from(dialog.file_name.trim());
+                                    if !path.is_absolute() {
+                                        path = dialog.directory.join(path);
+                                    }
+                                    let has_expected_extension = path
+                                        .extension()
+                                        .and_then(|extension| extension.to_str())
+                                        .is_some_and(|extension| {
+                                            extension.eq_ignore_ascii_case(&dialog.extension)
+                                        });
+                                    if !has_expected_extension {
+                                        path.set_extension(&dialog.extension);
+                                    }
+                                    if path.is_dir() {
+                                        dialog.error =
+                                            Some("Choose a file name, not a folder.".to_string());
+                                    } else if path
+                                        .parent()
+                                        .is_some_and(|parent| !parent.is_dir())
+                                    {
+                                        let parent =
+                                            path.parent().unwrap_or(dialog.directory.as_path());
+                                        dialog.error = Some(format!(
+                                            "Folder not found: {}",
+                                            parent.display()
+                                        ));
+                                    } else if path.exists() {
+                                        dialog.overwrite = Some(path);
+                                    } else {
+                                        chosen_path = Some(path);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+
+        if !open || cancel {
+            self.file_dialog = None;
+            return;
+        }
+
+        if let Some(mut path) = chosen_path {
+            match dialog.mode {
+                CodeDialogMode::Open => {
+                    self.unsaved = false;
+                    self.picked_path = Some(path.display().to_string());
+                    self.update = Some(PluguzuTask::LoadCode(path));
+                }
+                CodeDialogMode::SaveAs => {
+                    if path.extension().is_none() {
+                        let extension = match *self.lang.lock().expect("lock") {
+                            UzuKind::Tidal => "hs",
+                            UzuKind::Mondo => "mondo",
+                        };
+                        path.set_extension(extension);
+                    }
+                    self.unsaved = false;
+                    self.picked_path = Some(path.display().to_string());
+                    self.update = Some(PluguzuTask::SaveCode(path));
+                }
             }
-            self.unsaved = false;
-            self.picked_path = Some(path.display().to_string());
-            self.update = Some(PluguzuTask::SaveCode(path));
+        } else {
+            self.file_dialog = Some(dialog);
         }
     }
 
@@ -612,18 +930,8 @@ fn alpha_lerp(now: u64, when: u64, age: u64) -> u8 {
 }
 
 fn file_name(s: &str) -> &str {
-    if let Some(p) = s.rfind('/') {
-        &s[p + 1..]
-    } else {
-        s
-    }
-}
-
-fn file_dialog(save: bool) -> Option<std::path::PathBuf> {
-    let diag = rfd::FileDialog::new().add_filter("code", &["hs", "mondo"]);
-    if save {
-        diag.save_file()
-    } else {
-        diag.pick_file()
-    }
+    std::path::Path::new(s)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or(s)
 }

@@ -642,12 +642,10 @@ impl Plugin for Pluguzu {
                 PluguzuTask::LoadCode(path) => {
                     match std::fs::read_to_string(&path) {
                         Ok(new_code) => {
-                            if !new_code.is_empty() {
-                                *code.lock().expect("lock") = new_code;
-                                *lang.lock().expect("lock") =
-                                    path_to_lang(&path.display().to_string());
-                                do_update()
-                            }
+                            *code.lock().expect("lock") = new_code;
+                            *lang.lock().expect("lock") =
+                                path_to_lang(&path.display().to_string());
+                            do_update()
                         }
                         Err(e) => nice_warn!("{}: couldn't load: {e}", path.display()),
                     };
