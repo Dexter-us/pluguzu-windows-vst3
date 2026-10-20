@@ -179,6 +179,7 @@ impl Default for PluguzuParams {
 /// It is not accessed in the process audio callback
 struct BackgroundState {
     error: Mutex<Option<String>>,
+    sample_warning: Mutex<Option<String>>,
     error_row: AtomicUsize,
     error_col: AtomicUsize,
     events: Mutex<Arc<Events>>,
@@ -265,6 +266,7 @@ impl Default for Pluguzu {
 
             background_state: Arc::new(BackgroundState {
                 error: Mutex::new(None),
+                sample_warning: Mutex::new(None),
                 error_row: AtomicUsize::new(0),
                 error_col: AtomicUsize::new(0),
                 events: Mutex::new(Arc::new(Events::default())),
@@ -514,14 +516,26 @@ impl Plugin for Pluguzu {
 
         let (tx, rx) = std::sync::mpsc::channel();
         let sl = self.samples_library.clone();
+        let sample_warning_state = self.background_state.clone();
         std::thread::Builder::new()
             .name("sample-loader".to_string())
             .spawn(move || {
                 loop {
                     let (bank, sev): (smol_str::SmolStr, events::SoundEvent) = rx.recv().unwrap();
                     if !sl.has_sample(bank.clone(), &sev)
-                        && let Err(e) = sl.load_sample(bank, &sev)
+                        && let Err(e) = sl.load_sample(bank.clone(), &sev)
                     {
+                        let warning = format!(
+                            "Bank \"{bank}\", sound \"{}\": {e}. Check the sample map and referenced file.",
+                            sev.name
+                        );
+                        let mut current = sample_warning_state
+                            .sample_warning
+                            .lock()
+                            .expect("lock");
+                        if current.is_none() {
+                            *current = Some(warning);
+                        }
                         nice_warn!("Couldn't load sample {}: {}", sev.name, e);
                     }
                 }
@@ -577,6 +591,10 @@ impl Plugin for Pluguzu {
             };
 
             let do_update = || {
+                *background_state
+                    .sample_warning
+                    .lock()
+                    .expect("lock") = None;
                 let code = code.lock().expect("lock");
                 let kind = *lang.lock().expect("lock");
                 // println!("Parsing {}", code);

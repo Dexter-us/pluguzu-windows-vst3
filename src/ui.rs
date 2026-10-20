@@ -146,10 +146,19 @@ impl Pluguzu {
                                 egui::MenuBar::new().ui(ui, |ui| {
                                     let style = ui.style_mut();
                                     style.spacing.item_spacing.x = 8.;
-                                    if ui.button("+").clicked() {
+                                    if ui
+                                        .button("A+")
+                                        .on_hover_text("Increase editor text size")
+                                        .clicked()
+                                    {
                                         font_size_adjust = 1;
                                     }
-                                    if state.editor.font_size > 4. && ui.button("-").clicked() {
+                                    if state.editor.font_size > 4.
+                                        && ui
+                                            .button("A−")
+                                            .on_hover_text("Decrease editor text size")
+                                            .clicked()
+                                    {
                                         font_size_adjust = -1;
                                     }
 
@@ -163,7 +172,9 @@ impl Pluguzu {
                                             &mut state.view,
                                             &mut state.preset.user_presets,
                                         )
-                                    });
+                                    })
+                                    .response
+                                    .on_hover_text("Open, save, or manage code files");
                                     ui.menu_button("Clock", |ui| {
                                         if ui.checkbox(&mut synced, "Sync").clicked() {
                                             dsp_state.synced.store(synced, Ordering::Relaxed)
@@ -189,6 +200,29 @@ impl Pluguzu {
                                         if let Some(error) = error.as_deref() {
                                             ui.label("Error: ");
                                             ui.label(error);
+                                        }
+                                    });
+                                }
+
+                                let sample_warning = state
+                                    .background_state
+                                    .sample_warning
+                                    .lock()
+                                    .expect("lock")
+                                    .clone();
+                                if let Some(warning) = sample_warning {
+                                    ui.horizontal_wrapped(|ui| {
+                                        ui.colored_label(
+                                            egui::Color32::YELLOW,
+                                            "Missing sample:",
+                                        );
+                                        ui.label(warning);
+                                        if ui.small_button("Dismiss").clicked() {
+                                            *state
+                                                .background_state
+                                                .sample_warning
+                                                .lock()
+                                                .expect("lock") = None;
                                         }
                                     });
                                 }
