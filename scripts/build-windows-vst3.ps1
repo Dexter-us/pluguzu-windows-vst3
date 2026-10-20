@@ -58,15 +58,12 @@ if (-not $importLibraries) {
 Copy-Item $importLibraries.FullName $binDir
 
 Write-Host "Bundling the Windows x64 VST3..."
-$objdump = Get-Command "x86_64-w64-mingw32-objdump" -ErrorAction SilentlyContinue
-if (-not $objdump) {
-    $objdump = Get-Command "objdump" -ErrorAction Stop
-}
-$mingwPrefix = Split-Path -Parent (Split-Path -Parent $objdump.Source)
+$pkgConfig = Get-Command "pkg-config" -ErrorAction Stop
+$mingwPrefix = Split-Path -Parent (Split-Path -Parent $pkgConfig.Source)
 $sndfileLibDir = Join-Path $mingwPrefix "lib"
 $sndfileLibs = Get-ChildItem -Path $sndfileLibDir -Filter "*sndfile*.a" -File -ErrorAction SilentlyContinue
 if (-not $sndfileLibs) {
-    throw "Could not find libsndfile import libraries under the MinGW prefix: $sndfileLibDir"
+    throw "Could not find libsndfile import libraries beside MSYS2's pkg-config: $sndfileLibDir"
 }
 $env:RUSTFLAGS = (@($env:RUSTFLAGS, "-L native=$sndfileLibDir") -join " ").Trim()
 cargo xtask bundle pluguzu --release --target $target
@@ -85,6 +82,11 @@ if (-not (Test-Path $pluginModule)) {
 # user's PATH.
 $ffiDlls = Get-ChildItem -Path $binDir -Filter "*.dll" -File
 Copy-Item $ffiDlls.FullName $moduleDir
+
+$objdump = Get-Command "x86_64-w64-mingw32-objdump" -ErrorAction SilentlyContinue
+if (-not $objdump) {
+    $objdump = Get-Command "objdump" -ErrorAction Stop
+}
 
 $searchDirs = [Collections.Generic.List[string]]::new()
 $ghcLibDir = (& ghc --print-libdir | Select-Object -Last 1).Trim()
