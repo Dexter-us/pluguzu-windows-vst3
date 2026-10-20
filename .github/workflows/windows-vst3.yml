@@ -34,8 +34,8 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    runs-on: windows-latest
+  editor:
+    runs-on: ubuntu-latest
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -46,13 +46,30 @@ jobs:
           node-version: "22"
 
       - name: Build CodeMirror editor
-        shell: pwsh
         working-directory: web-ui
         run: |
           npm ci --no-audit --no-fund
-          if ($LASTEXITCODE -ne 0) { throw "CodeMirror dependency installation failed." }
           npm run build
-          if ($LASTEXITCODE -ne 0) { throw "CodeMirror UI build failed." }
+
+      - name: Upload editor page
+        uses: actions/upload-artifact@v4
+        with:
+          name: zen-master-editor-page
+          path: web-ui/dist/index.html
+          if-no-files-found: error
+
+  build:
+    needs: editor
+    runs-on: windows-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Download editor page
+        uses: actions/download-artifact@v4
+        with:
+          name: zen-master-editor-page
+          path: web-ui/dist
 
       - name: Install MinGW dependencies
         id: msys2

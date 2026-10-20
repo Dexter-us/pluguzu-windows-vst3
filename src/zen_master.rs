@@ -1,5 +1,6 @@
 use crate::haskell::UzuKind;
 use crate::{BackgroundState, Pluguzu, PluguzuParams, PluguzuTask, TransportState};
+use nice_plug::context::gui::GuiContext;
 use nice_plug::prelude::*;
 use raw_window_handle_06::{
     HandleError, HasWindowHandle, RawWindowHandle, Win32WindowHandle, WindowHandle,
@@ -129,7 +130,7 @@ impl Editor for ZenMasterEditor {
             serde_json::to_string(&init_data).expect("Zen Master initial state is serializable")
         );
         let scale = *self.scale.lock().expect("Editor scale mutex poisoned");
-        let bounds = wry::dpi::Rect {
+        let bounds = wry::Rect {
             position: wry::dpi::PhysicalPosition::new(0, 0).into(),
             size: wry::dpi::PhysicalSize::new(
                 (EDITOR_WIDTH as f64 * scale).round() as u32,
@@ -269,9 +270,19 @@ fn handle_message(
         }
         "run" => {
             if let Some(code) = message.get("code").and_then(Value::as_str) {
-                *params.code.lock().expect("Program mutex poisoned") = code.to_owned();
+                let code_changed = {
+                    let mut current_code = params.code.lock().expect("Program mutex poisoned");
+                    let changed = *current_code != code;
+                    *current_code = code.to_owned();
+                    changed
+                };
+                if code_changed {
+                    dirty.store(true, Ordering::Release);
+                }
             }
-            set_language(params, message.get("language").and_then(Value::as_str));
+            if set_language(params, message.get("language").and_then(Value::as_str)) {
+                dirty.store(true, Ordering::Release);
+            }
             executor.execute_background(PluguzuTask::Update);
             if dirty.swap(false, Ordering::AcqRel) {
                 notify_host_program_changed(context, params);
