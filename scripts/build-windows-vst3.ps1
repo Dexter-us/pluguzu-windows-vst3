@@ -58,6 +58,19 @@ if (-not $importLibraries) {
 Copy-Item $importLibraries.FullName $binDir
 
 Write-Host "Bundling the Windows x64 VST3..."
+$pkgConfig = Get-Command "pkg-config" -ErrorAction Stop
+$sndfileLibDir = (& $pkgConfig.Source --variable=libdir sndfile | Select-Object -Last 1).Trim()
+if ($LASTEXITCODE -ne 0 -or -not $sndfileLibDir) {
+    throw "pkg-config could not locate the libsndfile library directory."
+}
+if ($sndfileLibDir.StartsWith("/")) {
+    $cygpath = Get-Command "cygpath" -ErrorAction Stop
+    $sndfileLibDir = (& $cygpath.Source -w $sndfileLibDir | Select-Object -Last 1).Trim()
+}
+if (-not (Test-Path $sndfileLibDir -PathType Container)) {
+    throw "The libsndfile library directory does not exist: $sndfileLibDir"
+}
+$env:RUSTFLAGS = (@($env:RUSTFLAGS, "-L native=$sndfileLibDir") -join " ").Trim()
 cargo xtask bundle pluguzu --release --target $target
 if ($LASTEXITCODE -ne 0) {
     throw "The Rust VST3 build failed."
