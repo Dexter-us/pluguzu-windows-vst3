@@ -12,7 +12,7 @@ existing Windows VST3 build. Then build the editor page and plugin:
 
 ```powershell
 cd web-ui
-npm ci --no-audit --no-fund
+npm ci --registry=https://registry.npmjs.org --no-audit --no-fund
 npm run build
 cd ..
 .\scripts\build-windows-vst3.ps1

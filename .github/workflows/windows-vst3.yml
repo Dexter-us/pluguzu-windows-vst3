@@ -48,7 +48,7 @@ jobs:
       - name: Build CodeMirror editor
         working-directory: web-ui
         run: |
-          npm ci --no-audit --no-fund
+          npm ci --registry=https://registry.npmjs.org --no-audit --no-fund
           npm run build
 
       - name: Upload editor page
