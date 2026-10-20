@@ -396,6 +396,7 @@ impl Pluguzu {
 
         #[cfg(windows)]
         {
+            let fallback_editor = fallback_editor?;
             Some(Box::new(crate::zen_master::ZenMasterEditor::new(
                 self.params.clone(),
                 async_executor,
@@ -408,7 +409,7 @@ impl Pluguzu {
 
         #[cfg(not(windows))]
         {
-            Some(fallback_editor)
+            fallback_editor
         }
     }
 }

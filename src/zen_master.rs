@@ -9,9 +9,8 @@ use serde_json::{Value, json};
 use std::any::Any;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::ffi::c_void;
+use std::num::NonZeroIsize;
 use std::path::{Path, PathBuf};
-use std::ptr::NonNull;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread::{self, ThreadId};
@@ -28,9 +27,9 @@ thread_local! {
 
 static NEXT_WEBVIEW_ID: AtomicU64 = AtomicU64::new(1);
 
-struct HwndParent(NonNull<c_void>);
+struct HwndParent(NonZeroIsize);
 
-unsafe impl HasWindowHandle for HwndParent {
+impl HasWindowHandle for HwndParent {
     fn window_handle(&self) -> Result<WindowHandle<'_>, HandleError> {
         let raw = RawWindowHandle::Win32(Win32WindowHandle::new(self.0));
         // The host owns this HWND and it remains valid for the lifetime of the editor.
@@ -82,7 +81,7 @@ impl Editor for ZenMasterEditor {
         context: Arc<dyn GuiContext>,
     ) -> Box<dyn Any + Send> {
         let hwnd = match &parent {
-            ParentWindowHandle::Win32Hwnd(hwnd) => NonNull::new(*hwnd),
+            ParentWindowHandle::Win32Hwnd(hwnd) => NonZeroIsize::new(*hwnd as isize),
             _ => None,
         };
         let Some(hwnd) = hwnd else {
