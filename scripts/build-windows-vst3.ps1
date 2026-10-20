@@ -29,8 +29,21 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $ffiLibrary = (& cabal list-bin flib:pluguzu | Select-Object -Last 1).Trim()
-if ($LASTEXITCODE -ne 0 -or -not (Test-Path $ffiLibrary)) {
-    throw "Could not locate the built Haskell foreign library. Output from 'cabal list-bin flib:pluguzu': $ffiLibrary"
+if ($LASTEXITCODE -ne 0) {
+    throw "Could not query Cabal for the built Haskell foreign library."
+}
+if (-not (Test-Path $ffiLibrary -PathType Leaf)) {
+    # Cabal may report the unoptimized path even though GHC places the
+    # linked DLL under its opt/build directory.
+    $distRoot = Join-Path $repoRoot "dist-newstyle"
+    $ffiCandidate = Get-ChildItem -Path $distRoot -Filter "pluguzu.dll" -File -Recurse |
+        Select-Object -First 1
+    if ($ffiCandidate) {
+        $ffiLibrary = $ffiCandidate.FullName
+    }
+}
+if (-not (Test-Path $ffiLibrary -PathType Leaf)) {
+    throw "Could not locate the built Haskell foreign library. Cabal reported: $ffiLibrary"
 }
 if ([IO.Path]::GetExtension($ffiLibrary) -ne ".dll") {
     throw "Expected a Windows DLL from Cabal, but found: $ffiLibrary"
@@ -38,7 +51,7 @@ if ([IO.Path]::GetExtension($ffiLibrary) -ne ".dll") {
 
 Copy-Item $ffiLibrary $binDir
 $ffiDirectory = Split-Path -Parent $ffiLibrary
-$importLibraries = Get-ChildItem -Path $ffiDirectory -Filter "*.dll.a" -File -Recurse
+$importLibraries = Get-ChildItem -Path (Join-Path $repoRoot "dist-newstyle") -Filter "*pluguzu*.dll.a" -File -Recurse
 if (-not $importLibraries) {
     throw "Cabal produced no MinGW import library (*.dll.a) beside the Haskell DLL."
 }
