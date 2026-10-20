@@ -683,7 +683,7 @@ impl Plugin for Pluguzu {
     const SAMPLE_ACCURATE_AUTOMATION: bool = false;
 
     const NAME: &'static str = "Pluguzu";
-    const VENDOR: &'static str = "Midirus";
+    const VENDOR: &'static str = "Dexter U.S.";
     const URL: &'static str = "https://codeberg.org/TristanCacqueray/pluguzu";
     const EMAIL: &'static str = "tristan@midirus.com";
     const VERSION: &'static str = env!("CARGO_PKG_VERSION");

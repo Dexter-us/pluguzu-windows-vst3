@@ -27,6 +27,14 @@ use crate::{
 
 const VERT_SPACE: f32 = 3.;
 
+fn menu_frame() -> egui::Frame {
+    egui::Frame::new()
+        .fill(Color32::from_rgb(35, 58, 75))
+        .stroke(Stroke::new(1.0, Color32::from_rgb(83, 184, 198)))
+        .corner_radius(egui::CornerRadius::same(4))
+        .inner_margin(egui::Margin::symmetric(5, 2))
+}
+
 enum UIView {
     Editor,
     Preset,
@@ -270,19 +278,35 @@ impl Pluguzu {
                                         && (!state.hosted_in_daw // not in a DAW, or editing a file...
                                             || state.editor.picked_path.is_some());
                                     let file_menu = if dirty { "File*" } else { "File" };
-                                    ui.menu_button(file_menu, |ui| {
-                                        state.editor.file_menu(
-                                            ui,
-                                            &mut state.view,
-                                            &mut state.preset.user_presets,
+                                    menu_frame().show(ui, |ui| {
+                                        ui.menu_button(
+                                            RichText::new(format!("{file_menu}  ▾"))
+                                                .strong()
+                                                .color(Color32::WHITE),
+                                            |ui| {
+                                                state.editor.file_menu(
+                                                    ui,
+                                                    &mut state.view,
+                                                    &mut state.preset.user_presets,
+                                                )
+                                            },
                                         )
-                                    })
-                                    .response
-                                    .on_hover_text("Open, save, or manage code files");
-                                    ui.menu_button("Clock", |ui| {
-                                        if ui.checkbox(&mut synced, "Sync").clicked() {
-                                            dsp_state.synced.store(synced, Ordering::Relaxed)
-                                        }
+                                        .response
+                                        .on_hover_text("Open, save, or manage code files");
+                                    });
+                                    menu_frame().show(ui, |ui| {
+                                        ui.menu_button(
+                                            RichText::new("Clock  ▾")
+                                                .strong()
+                                                .color(Color32::WHITE),
+                                            |ui| {
+                                                if ui.checkbox(&mut synced, "Sync").clicked() {
+                                                    dsp_state.synced.store(synced, Ordering::Relaxed)
+                                                }
+                                            },
+                                        )
+                                        .response
+                                        .on_hover_text("Clock and sync settings");
                                     });
                                     state.editor.render_status(ui, synced, &dsp_state);
                                 });
@@ -823,11 +847,13 @@ impl EditorState {
         // Lang selector
         let mut selected = self.lang.lock().expect("lock");
         let before = *selected;
-        egui::ComboBox::new("lang", "")
-            .selected_text(format!("{:?}", selected))
-            .show_ui(ui, |ui| {
-                ui.selectable_value(selected.deref_mut(), UzuKind::Tidal, "tidal");
-                ui.selectable_value(selected.deref_mut(), UzuKind::Mondo, "mondo");
+        menu_frame().show(ui, |ui| {
+            egui::ComboBox::new("lang", "")
+                .selected_text(format!("{:?}", selected))
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(selected.deref_mut(), UzuKind::Tidal, "tidal");
+                    ui.selectable_value(selected.deref_mut(), UzuKind::Mondo, "mondo");
+                });
             });
 
         if *selected != before {

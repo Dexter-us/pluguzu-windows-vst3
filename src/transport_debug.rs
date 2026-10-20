@@ -91,7 +91,7 @@ impl Plugin for DebugTransport {
     const SAMPLE_ACCURATE_AUTOMATION: bool = true;
 
     const NAME: &'static str = "pluguzu-debug-transport";
-    const VENDOR: &'static str = "Midirus";
+    const VENDOR: &'static str = "Dexter U.S.";
     const URL: &'static str = "https://codeberg.org/TristanCacqueray/pluguzu";
     const EMAIL: &'static str = "tristan@midirus.com";
     const VERSION: &'static str = env!("CARGO_PKG_VERSION");
