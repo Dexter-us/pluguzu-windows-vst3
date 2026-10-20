@@ -1,0 +1,74 @@
+name: Windows VST3
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/windows-vst3.yml"
+      - ".cargo/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "cabal.project"
+      - "pluguzu.cabal"
+      - "haskell-ffi/**"
+      - "src/**"
+      - "xtask/**"
+      - "scripts/build-windows-vst3.ps1"
+  pull_request:
+    paths:
+      - ".github/workflows/windows-vst3.yml"
+      - ".cargo/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "cabal.project"
+      - "pluguzu.cabal"
+      - "haskell-ffi/**"
+      - "src/**"
+      - "xtask/**"
+      - "scripts/build-windows-vst3.ps1"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install MinGW dependencies
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-pkgconf
+            mingw-w64-x86_64-libsndfile
+            mingw-w64-x86_64-libsamplerate
+
+      - name: Install Haskell toolchain
+        uses: haskell-actions/setup@v2
+        with:
+          ghc-version: "9.10.3"
+          cabal-version: "3.14.1.0"
+          cabal-update: true
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-gnu
+
+      - name: Build VST3 bundle
+        shell: pwsh
+        run: .\scripts\build-windows-vst3.ps1
+
+      - name: Upload VST3 bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: pluguzu-windows-x64-vst3
+          path: target/bundled/pluguzu.vst3
+          if-no-files-found: error

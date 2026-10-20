@@ -1,0 +1,7 @@
+[package]
+name = "xtask"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+nice-plug-xtask = { git = "https://codeberg.org/RustAudio/nice-plug.git", rev = "d1d6889aa0df90cb60b5072ddf8f376b87dd1c9d" }

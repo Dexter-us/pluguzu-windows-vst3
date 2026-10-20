@@ -1,0 +1,36 @@
+cabal-version:      3.4
+name:               pluguzu
+version:            0.1
+-- synopsis:
+-- description:
+license:            GPL-3.0-only
+license-file:       LICENSE
+author:             Tristan de Cacqueray
+maintainer:         tristan@midirus.com
+-- copyright:
+category:           Sound
+build-type:         Simple
+extra-doc-files:    CHANGELOG.md
+-- extra-source-files:
+
+common warnings
+    ghc-options: -Wall
+
+foreign-library pluguzu
+    import:           warnings
+    type:             native-shared
+    other-modules:    Pluguzu
+    -- other-modules:
+    -- other-extensions:
+    build-depends:    base, pluguzu, bytestring
+    hs-source-dirs:   haskell-ffi
+    c-sources:        haskell-ffi/PluguzuWrapper.c
+    ghc-options:      -threaded
+    default-language: GHC2021
+
+library
+    build-depends:    base, containers, parsec, aeson, bytestring, tidal-core >= 1.10.1, tidal-parse, tidal-mondo
+                  -- , tidal, tidal-link
+    exposed-modules:  PluguzuCore
+    hs-source-dirs:   src
+    default-language: GHC2021

@@ -1,0 +1,64 @@
+[package]
+name = "pluguzu"
+version = "0.1.0"
+edition = "2024"
+license = "GPL-3.0"
+repository = "https://codeberg.org/TristanCacqueray/pluguzu"
+authors = ["TristanCacqueray"]
+
+[dependencies]
+# The audio pluging framework
+nice-plug = { git = "https://codeberg.org/TristanCacqueray/nice-plug.git", rev = "715d56c07ae76233978d4a01c4bcbb4b086a859b", features = ["assert_process_allocs", "standalone"] }
+nice-plug-egui = { git = "https://codeberg.org/TristanCacqueray/nice-plug.git", rev = "715d56c07ae76233978d4a01c4bcbb4b086a859b" }
+egui = { version = "0.34", features = ["default_fonts"] }
+epaint_default_fonts = "0.34"
+
+# A str type to store sample names
+smol_str = { version = "0.3.2", features = ["serde"]}
+smallvec = "*"
+# Util for error management
+thiserror = "2"
+# Utils for key ordered hashmap, like for presets list.
+indexmap = "2.11.1"
+# Access to xdg config location
+dirs = "6.0.0"
+# Serialization for the FFI
+serde = "1.0.225"
+serde_json = "1.0.145"
+# Audio samples utils
+sndfile = { git = "https://github.com/TristanCacqueray/sndfile.rs", rev = "b201b9ab060cb20af39cb489627af95cfcb31c9e" }
+samplerate = "0.2.4"
+# The audio engine
+dough-sys = { git = "https://codeberg.org/TristanCacqueray/dough-sys.git", rev = "796e1e637ca199223a9680d78304b831ac7453b3" }
+# dough-sys = { path = "../dough-sys" }
+# Helper to show file picker.
+rfd = "0.17"
+atomic_float = "1.1.0"
+parking_lot = "0.12.4"
+dashmap = "6.1.0"
+time = "0.3.44"
+urlencoding = "2"
+lazy_static = "*"
+crossbeam = "*"
+
+[patch.crates-io]
+libsamplerate-sys = { git = "https://github.com/TristanCacqueray/libsamplerate-sys", rev = "bf289e8debdc9aab0d93257d66acaf1b84dbb91d" }
+
+[workspace]
+members = ["xtask"]
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+debug = []
+debug-plugin = []
+
+[profile.release]
+lto = "thin"
+strip = "symbols"
+
+[profile.profiling]
+inherits = "release"
+debug = true
+strip = "none"

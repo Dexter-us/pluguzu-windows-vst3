@@ -1,0 +1,8 @@
+[target.'cfg(target_os = "linux")']
+rustflags = ["-C", "link-arg=-Wl,-rpath,$ORIGIN", "-L", "bin"]
+
+[target.x86_64-pc-windows-gnu]
+rustflags = ["-L", "bin"]
+
+[alias]
+xtask = "run --package xtask --release --"

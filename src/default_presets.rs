@@ -1,0 +1,20 @@
+// Pluguzu presets
+
+use crate::haskell::UzuKind;
+use crate::presets::UzuProgram;
+
+pub fn presets() -> Vec<UzuProgram> {
+    vec![
+      UzuProgram {name: "Haunted".into(), lang: UzuKind::Mondo, code: "$ s ([bd*<2 [2 4]>],\n     [~ (sd # n 1 # gain .5)]\n) # bank crate\n$ s hh&5:12 # n 1 # gain .5 # bank garden\n# delay .1 # delaytime .2\n$ n <(run 4) ~!3> # s rim # bank crate # gain .4\n\n$ note (perlin # range 0 5 # segment 8)\n# scale minPent # ribbon 12 4\n# add (note <c3 f3>)\n# s sine # dec .5\n\n$ note [c2 ~ c2 c2]\n# off 1/3 (add (note 12?))\n# jux rev\n# s saw # lpf 120 # lpe 2 # dec .9\n\n$ note <~ ~ ~ ~ <c c'min'5 c'min'7>> # s ocarina\n# sub (note 12) # gain .03 # hpf 1000 # verb .2\n\n$ note <c5 ~!3> # s sine # verb 1 # vib .25:2\n# degrade # gain .1\n".into(), tags: vec!["Demo".into()]},
+      UzuProgram {name: "Gong".into(), lang: UzuKind::Mondo, code: "$ note (perlin # fast 2 # range 0 12 # segment 12)\n# scale gong # add (note <c3 f2>) # s sine\n# verb [0 0 .5] # sometimes (delay \"0.5\")\n".into(), tags: vec!["Demo".into()]},
+      UzuProgram {name: "Bass".into(), lang: UzuKind::Mondo, code: "$ note (rand # segment 8 # range 0 5)\n# scale minor # ribbon 24 4\n# add (note <c2 f1 g1>)\n# sometimes (ply 2)\n# dec .5 # clip .8\n# s [saw,pulse]\n# lpf 100 # lpe (sine # range 0 2 # slow 7) # lpq 2\n# distort 1\n".into(), tags: vec!["Demo".into()]},
+      UzuProgram {name: "Chime".into(), lang: UzuKind::Mondo, code: "$ (s bd*4, s [~ sd], s hh&5:8 # gain .3) # iter 2\n# bank crate # hpf <1!3 [500 1000 1500]>\n\n$ n (rand # segment 8 # range 0 4) # ribbon 16 4\n# s large # bank shaker\n\n$ note <[0,2,4] [2,5,7 3] ~>\n# off (1/4) (note \"0'min\" # gain .4)\n# scale gong\n# add (note <c3@3 f3>)\n# iter 2\n# s vibraphone\n# gain .1\n\n$ note (rand # segment 4 # range 0 5) # ribbon 42 8\n# sometimes (ply 2)\n# scale gong # sub (note <12 5>)\n// # every 4 rev\n// # swing .3\n# s handchimes\n# fast [1 <~ 1.5> 2]\n# clip 1\n# jux rev\n".into(), tags: vec!["Demo".into()]},
+      UzuProgram {name: "Burst".into(), lang: UzuKind::Mondo, code: "$ s [bd ~ ~  bd:1] # distort <0 [0 1]> # fast 2\n$ s [ ~ ~ sd ~] # sometimes (ply 2)\n$ s hh&5:8 # n 1 # gain .9 # verb [0 0 .1]\n$ note <c3@3 c4> # s piano # hpf 500\n$ note [g2!2 <c3 [c3 f4]>]*<4!3 6 8>\n# dec (sine # range .2 .4 # slow 2)\n# s saw # lpf 200 # lpq 4 # lpe <2 1> # verb .2 # distort .5\n".into(), tags: vec!["Demo".into()]},
+      UzuProgram {name: "Piano".into(), lang: UzuKind::Mondo, code: "$ def foo gong\n$ note [<[0,2,4] [5,7,9 5] >,\n        (rand # segment 5 # range 12 17)]\n# scale foo\n# iter 2\n# add (note <f3 c3>)\n# s piano # clip 2\n# hpf 100 # lpf 1500 # pan .8\n\n$ s bd*4 # bank crate\n// # jux rev\n$ s hh&5:8 # bank garden # gain .4 # iter 2\n# sometimes (ply 2) # hpf 200\n\n$ note (rand # segment 8 # range 0 7)\n# scale foo\n# ribbon 24 3\n# add (note <c2@2 g2>) # s saw # lpf 100 # lpe 2\n# distort 1 # pan .2 # gain 2\n".into(), tags: vec!["Demo".into()]},
+      UzuProgram {name: "Calm".into(), lang: UzuKind::Tidal, code: "stack [\n  n $ scale \"minor\" $ \"{[-12 .. -5]/4, [c4 f3 g3]}%<1 [1 2?]>\"\n, ccv (segment 32 $ range 0 128 $ sine) # ccn 1\n]\n".into(), tags: vec!["Demo".into()]},
+      UzuProgram {name: "Mondough".into(), lang: UzuKind::Mondo, code: "$ note <d'min9 <g'min7 a'sevenFlat9>>\n# clip .8 # release .3\n# sub (note 24)\n# vib 4:.2\n# lpf (sine # range 500 2000 # slow 8)\n# lpe 1 # lpd .5 # lpq .1\n# s saw # gain .3\n\n$ note <d1 <g1 a1>> # clip .25\n# s pulse # pw .4\n# lpf 200 # lpe 3 # lpd .1\n# off .125 (add (note 12))\n# off .25 (add (note 24))\n# jux rev\n# distort 2:.5\n# gain .3\n".into(), tags: vec!["Demo".into()]},
+      UzuProgram {name: "4 on the floor".into(), lang: UzuKind::Tidal, code: "s(\"bd*4\")\n".into(), tags: vec!["Beat".into()]},
+      UzuProgram {name: "Funky line".into(), lang: UzuKind::Tidal, code: "n(\"0 0 - [- 0]\")\n".into(), tags: vec!["Bass".into()]},
+      UzuProgram {name: "Secret Of Uzu".into(), lang: UzuKind::Tidal, code: "-- todo\n".into(), tags: vec!["Melody".into()]},
+  ]
+}

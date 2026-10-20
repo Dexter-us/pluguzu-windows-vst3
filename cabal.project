@@ -1,0 +1,9 @@
+-- Fetch latest tidal-parse fix and tidal-mondo PR: https://codeberg.org/uzu/tidal/pulls/1233
+-- It's better to `rm -Rf dist-newstyle` before rebuilding, to avoid Known issue
+source-repository-package
+    type: git
+    location: https://codeberg.org/TristanCacqueray/tidal/
+    tag: 95af16151de4d7f82ba744240facc2512df627e8
+    subdir: tidal-parse tidal-mondo
+
+packages: .
