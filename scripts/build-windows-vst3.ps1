@@ -64,10 +64,22 @@ if (-not $env:MSYS2_LOCATION) {
     throw "MSYS2_LOCATION was not provided by the MSYS2 setup step."
 }
 $sndfileLibDir = Join-Path (Join-Path $env:MSYS2_LOCATION "mingw64") "lib"
+$mingwBinDir = Join-Path (Join-Path $env:MSYS2_LOCATION "mingw64") "bin"
 $sndfileLibs = Get-ChildItem -Path $sndfileLibDir -Filter "*sndfile*.a" -File -ErrorAction SilentlyContinue
 if (-not $sndfileLibs) {
     throw "Could not find libsndfile import libraries in the MSYS2 MINGW64 library directory: $sndfileLibDir"
 }
+$mingwGcc = Join-Path $mingwBinDir "x86_64-w64-mingw32-gcc.exe"
+if (-not (Test-Path $mingwGcc -PathType Leaf)) {
+    throw "Could not find the MSYS2 MinGW compiler: $mingwGcc"
+}
+# Keep GCC's CRT and the MSYS2 native libraries from the same toolchain.
+$env:CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER = $mingwGcc
+$env:CC_x86_64_pc_windows_gnu = $mingwGcc
+$env:PATH = "$mingwBinDir;$env:PATH"
+Write-Host "Using the MSYS2 MinGW compiler and linker: $mingwGcc"
+& $mingwGcc --version
+
 # RUSTFLAGS overrides target rustflags from .cargo/config.toml, so include
 # both the staged Haskell import library and MSYS2's native library directory.
 $env:RUSTFLAGS = (@($env:RUSTFLAGS, "-L native=$binDir", "-L native=$sndfileLibDir") -join " ").Trim()
