@@ -19,6 +19,8 @@ common warnings
 foreign-library pluguzu
     import:           warnings
     type:             native-shared
+    if os(Windows)
+        options:      standalone
     other-modules:    Pluguzu
     -- other-modules:
     -- other-extensions:
