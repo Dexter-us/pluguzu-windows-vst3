@@ -58,17 +58,15 @@ if (-not $importLibraries) {
 Copy-Item $importLibraries.FullName $binDir
 
 Write-Host "Bundling the Windows x64 VST3..."
-$pkgConfig = Get-Command "pkg-config" -ErrorAction Stop
-$sndfileLibDir = (& $pkgConfig.Source --variable=libdir sndfile | Select-Object -Last 1).Trim()
-if ($LASTEXITCODE -ne 0 -or -not $sndfileLibDir) {
-    throw "pkg-config could not locate the libsndfile library directory."
+$objdump = Get-Command "x86_64-w64-mingw32-objdump" -ErrorAction SilentlyContinue
+if (-not $objdump) {
+    $objdump = Get-Command "objdump" -ErrorAction Stop
 }
-if ($sndfileLibDir.StartsWith("/")) {
-    $cygpath = Get-Command "cygpath" -ErrorAction Stop
-    $sndfileLibDir = (& $cygpath.Source -w $sndfileLibDir | Select-Object -Last 1).Trim()
-}
-if (-not (Test-Path $sndfileLibDir -PathType Container)) {
-    throw "The libsndfile library directory does not exist: $sndfileLibDir"
+$mingwPrefix = Split-Path -Parent (Split-Path -Parent $objdump.Source)
+$sndfileLibDir = Join-Path $mingwPrefix "lib"
+$sndfileLibs = Get-ChildItem -Path $sndfileLibDir -Filter "*sndfile*.a" -File -ErrorAction SilentlyContinue
+if (-not $sndfileLibs) {
+    throw "Could not find libsndfile import libraries under the MinGW prefix: $sndfileLibDir"
 }
 $env:RUSTFLAGS = (@($env:RUSTFLAGS, "-L native=$sndfileLibDir") -join " ").Trim()
 cargo xtask bundle pluguzu --release --target $target
@@ -87,11 +85,6 @@ if (-not (Test-Path $pluginModule)) {
 # user's PATH.
 $ffiDlls = Get-ChildItem -Path $binDir -Filter "*.dll" -File
 Copy-Item $ffiDlls.FullName $moduleDir
-
-$objdump = Get-Command "x86_64-w64-mingw32-objdump" -ErrorAction SilentlyContinue
-if (-not $objdump) {
-    $objdump = Get-Command "objdump" -ErrorAction Stop
-}
 
 $searchDirs = [Collections.Generic.List[string]]::new()
 $ghcLibDir = (& ghc --print-libdir | Select-Object -Last 1).Trim()
